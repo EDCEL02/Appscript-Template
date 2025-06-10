@@ -1,0 +1,241 @@
+<!-- Sidebar Navigation JavaScript -->
+<script>
+// Sidebar functionality and navigation
+
+document.addEventListener("DOMContentLoaded", function () {
+  // Initialize user info in sidebar
+  updateSidebarUserInfo();
+
+  // Initialize Bootstrap tooltips
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
+    new bootstrap.Tooltip(el);
+  });
+
+  // Apply dark mode if enabled in localStorage
+  if (localStorage.getItem("darkMode") === "true") {
+    document.body.classList.add("dark-mode");
+    const darkModeSwitch = document.getElementById("darkModeSwitch");
+    if (darkModeSwitch) {
+      darkModeSwitch.checked = true;
+    }
+  }
+
+  // Dark mode toggle handler
+  const darkModeSwitch = document.getElementById("darkModeSwitch");
+  if (darkModeSwitch) {
+    darkModeSwitch.addEventListener("change", function() {
+      document.body.classList.toggle("dark-mode");
+      localStorage.setItem("darkMode", this.checked);
+      
+      // Update charts if they exist
+      if (window.updateChartsTheme) {
+        window.updateChartsTheme();
+      }
+    });
+  }
+
+  // Auto-refresh controls
+  const autoRefreshToggle = document.getElementById("sidebarAutoRefreshToggle");
+  const refreshInterval = document.getElementById("sidebarRefreshInterval");
+  
+  if (autoRefreshToggle) {
+    autoRefreshToggle.addEventListener("change", function() {
+      if (window.toggleAutoRefresh) {
+        window.toggleAutoRefresh();
+      }
+    });
+  }
+  
+  if (refreshInterval) {
+    refreshInterval.addEventListener("change", function() {
+      if (window.updateRefreshInterval) {
+        window.updateRefreshInterval(parseInt(this.value) * 1000);
+      }
+    });
+  }
+
+  // Update sheet title in sidebar footer
+  updateSheetTitleInSidebar();
+
+  // Show dashboard by default
+  showSection("dashboardView", document.getElementById("navDashboard"));
+});
+
+/**
+ * Section navigation function
+ */
+function showSection(sectionId, link) {
+  // Hide all sections
+  const sections = [
+    "dashboardView",
+    "dataView", 
+    "settingsView",
+    "helpView"
+  ];
+  
+  sections.forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.style.display = "none";
+    }
+  });
+
+  // Remove active class from all nav links
+  document.querySelectorAll(".sidebar .nav-link").forEach((el) => {
+    el.classList.remove("active");
+  });
+
+  // Add active class to clicked link
+  if (link) {
+    link.classList.add("active");
+  }
+
+  // Show the selected section
+  const targetSection = document.getElementById(sectionId);
+  if (targetSection) {
+    targetSection.style.display = "block";
+    targetSection.classList.add("fade-in");
+  }
+
+  // Load data based on active section
+  setTimeout(() => {
+    switch(sectionId) {
+      case "dashboardView":
+        if (typeof loadDashboardData === "function") {
+          loadDashboardData();
+        }
+        break;
+      case "dataView":
+        if (typeof loadDataTable === "function") {
+          loadDataTable();
+        }
+        break;
+      case "settingsView":
+        if (typeof loadSettingsData === "function") {
+          loadSettingsData();
+        }
+        updateSettingsSpreadsheetTitle();
+        break;
+    }
+  }, 100);
+}
+
+/**
+ * Update user info in sidebar
+ */
+function updateSidebarUserInfo(userInfo = null) {
+  const emailElement = document.getElementById("sidebarUserEmail");
+  const roleElement = document.getElementById("sidebarUserRole");
+  
+  if (!emailElement || !roleElement) return;
+  
+  // Use provided userInfo or get from global
+  const user = userInfo || window.currentUserInfo;
+  
+  if (user && user.isAuthenticated) {
+    emailElement.textContent = user.userEmail || "Unknown";
+    
+    if (user.isAdmin) {
+      roleElement.textContent = "Administrator";
+      roleElement.className = "badge bg-danger";
+    } else {
+      roleElement.textContent = "User";
+      roleElement.className = "badge bg-primary";
+    }
+  } else {
+    emailElement.textContent = "Not logged in";
+    roleElement.textContent = "Guest";
+    roleElement.className = "badge bg-secondary";
+  }
+}
+
+/**
+ * Update the spreadsheet title in the sidebar footer
+ */
+function updateSheetTitleInSidebar() {
+  const titleElement = document.getElementById("sheetTitleDisplay");
+  if (titleElement) {
+    google.script.run
+      .withSuccessHandler(function(title) {
+        titleElement.textContent = title || "No spreadsheet connected";
+        titleElement.title = title || "No spreadsheet connected";
+      })
+      .withFailureHandler(function(error) {
+        console.error("Error fetching spreadsheet title:", error);
+        titleElement.textContent = "Connection error";
+      })
+      .getSpreadsheetTitle();
+  }
+}
+
+/**
+ * Update the spreadsheet title in the settings page
+ */
+function updateSettingsSpreadsheetTitle() {
+  const titleElement = document.getElementById("spreadsheetTitle");
+  if (titleElement) {
+    google.script.run
+      .withSuccessHandler(function(title) {
+        titleElement.textContent = title || "No spreadsheet connected";
+      })
+      .withFailureHandler(function(error) {
+        console.error("Error fetching spreadsheet title:", error);
+        titleElement.textContent = "Connection error";
+      })
+      .getSpreadsheetTitle();
+  }
+}
+
+/**
+ * Apply new sheet link from settings
+ */
+function applySheetLink() {
+  const newLink = document.getElementById("sheetLinkInput").value;
+  if (newLink && newLink.trim() !== "") {
+    google.script.run
+      .withSuccessHandler(function (response) {
+        console.log(response);
+        alert("Spreadsheet link updated successfully. The page will reload.");
+        location.reload();
+      })
+      .withFailureHandler(function (error) {
+        console.error("Error updating sheet link: ", error);
+        alert("Error updating spreadsheet link: " + error.message);
+      })
+      .setSheetLink(newLink);
+  } else {
+    alert("Please enter a valid spreadsheet link.");
+  }
+}
+
+/**
+ * Load current sheet link for settings page
+ */
+function loadCurrentSheetLink() {
+  google.script.run
+    .withSuccessHandler(function (link) {
+      const input = document.getElementById("sheetLinkInput");
+      if (input && link) {
+        input.value = link;
+      }
+    })
+    .withFailureHandler(function (error) {
+      console.error("Error fetching sheet link: ", error);
+    })
+    .getSheetLink();
+}
+
+// Make functions globally accessible
+window.updateSidebarUserInfo = updateSidebarUserInfo;
+window.showSection = showSection;
+window.updateSheetTitleInSidebar = updateSheetTitleInSidebar;
+window.updateSettingsSpreadsheetTitle = updateSettingsSpreadsheetTitle;
+window.applySheetLink = applySheetLink;
+window.loadCurrentSheetLink = loadCurrentSheetLink;
+
+// Listen for authentication complete event
+window.addEventListener('authenticationComplete', function(event) {
+  const userInfo = event.detail.userInfo;
+  updateSidebarUserInfo(userInfo);
+});
+</script>

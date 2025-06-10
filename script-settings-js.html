@@ -1,0 +1,521 @@
+<!-- Settings Management JavaScript -->
+<script>
+// Settings page functionality
+
+document.addEventListener("DOMContentLoaded", function () {
+  // Wait for authentication to complete, then check admin status
+  setTimeout(function() {
+    checkAndShowAdminSettings();
+    loadSettingsData();
+  }, 1000);
+  
+  // Set up settings event listeners
+  setupSettingsEventListeners();
+});
+
+/**
+ * Set up event listeners for settings
+ */
+function setupSettingsEventListeners() {
+  // Auto-refresh settings
+  const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+  const refreshInterval = document.getElementById('refreshInterval');
+  
+  if (autoRefreshToggle) {
+    autoRefreshToggle.addEventListener('change', function() {
+      if (window.toggleAutoRefresh) {
+        window.toggleAutoRefresh();
+      }
+      saveSettingsPreferences();
+    });
+  }
+  
+  if (refreshInterval) {
+    refreshInterval.addEventListener('change', function() {
+      if (window.updateRefreshInterval) {
+        window.updateRefreshInterval(parseInt(this.value) * 1000);
+      }
+      saveSettingsPreferences();
+    });
+  }
+  
+  // Compact view toggle
+  const compactViewToggle = document.getElementById('compactViewToggle');
+  if (compactViewToggle) {
+    compactViewToggle.addEventListener('change', function() {
+      document.body.classList.toggle('compact-view', this.checked);
+      localStorage.setItem('compactView', this.checked);
+    });
+  }
+  
+  // Add user form submission
+  const submitAddUserBtn = document.getElementById('submitAddUserBtn');
+  if (submitAddUserBtn) {
+    submitAddUserBtn.addEventListener('click', addNewUser);
+  }
+}
+
+/**
+ * Check if user is admin and show admin settings
+ */
+function checkAndShowAdminSettings() {
+  const userInfo = window.getCurrentUserInfo();
+  if (userInfo && userInfo.isAdmin) {
+    const userManagementSection = document.getElementById('userManagementSection');
+    if (userManagementSection) {
+      userManagementSection.style.display = 'block';
+      loadUserManagement();
+    }
+  }
+}
+
+/**
+ * Load settings data
+ */
+function loadSettingsData() {
+  // Load current sheet link
+  if (window.loadCurrentSheetLink) {
+    window.loadCurrentSheetLink();
+  }
+  
+  // Load compact view preference
+  const compactViewToggle = document.getElementById('compactViewToggle');
+  if (compactViewToggle) {
+    const isCompact = localStorage.getItem('compactView') === 'true';
+    compactViewToggle.checked = isCompact;
+    document.body.classList.toggle('compact-view', isCompact);
+  }
+  
+  // Load auto-refresh settings
+  loadAutoRefreshSettings();
+  
+  // Load system information
+  loadSystemInformation();
+}
+
+/**
+ * Load auto-refresh settings
+ */
+function loadAutoRefreshSettings() {
+  const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+  const refreshInterval = document.getElementById('refreshInterval');
+  
+  if (autoRefreshToggle) {
+    const isEnabled = localStorage.getItem('autoRefreshEnabled') !== 'false';
+    autoRefreshToggle.checked = isEnabled;
+  }
+  
+  if (refreshInterval) {
+    const interval = localStorage.getItem('autoRefreshInterval') || '30';
+    refreshInterval.value = Math.floor(parseInt(interval) / 1000);
+  }
+}
+
+/**
+ * Save settings preferences
+ */
+function saveSettingsPreferences() {
+  const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+  const refreshInterval = document.getElementById('refreshInterval');
+  
+  if (autoRefreshToggle) {
+    localStorage.setItem('autoRefreshEnabled', autoRefreshToggle.checked);
+  }
+  
+  if (refreshInterval) {
+    localStorage.setItem('autoRefreshInterval', parseInt(refreshInterval.value) * 1000);
+  }
+}
+
+/**
+ * Load system information
+ */
+function loadSystemInformation() {
+  const userInfo = window.getCurrentUserInfo();
+  
+  // Update current user role
+  const currentUserRole = document.getElementById('currentUserRole');
+  if (currentUserRole && userInfo) {
+    currentUserRole.textContent = userInfo.isAdmin ? 'Administrator' : 'Regular User';
+  }
+  
+  // Load setup date and other system info for admins
+  if (userInfo && userInfo.isAdmin) {
+    google.script.run
+      .withSuccessHandler(handleSystemInfoResult)
+      .withFailureHandler(handleSystemInfoError)
+      .getScriptProperties();
+  }
+}
+
+/**
+ * Handle system info result
+ */
+function handleSystemInfoResult(properties) {
+  const setupDate = document.getElementById('setupDate');
+  const totalUsersCount = document.getElementById('totalUsersCount');
+  
+  if (setupDate && properties.setupDate) {
+    const date = new Date(properties.setupDate);
+    setupDate.textContent = date.toLocaleDateString();
+  }
+  
+  // Count total users
+  if (totalUsersCount) {
+    try {
+      const adminUsers = JSON.parse(properties.adminUsers || '{"admins":[]}');
+      const regularUsers = JSON.parse(properties.regularUsers || '{"regularusers":[]}');
+      const total = (adminUsers.admins || []).length + (regularUsers.regularusers || []).length;
+      totalUsersCount.textContent = total;
+    } catch (e) {
+      totalUsersCount.textContent = 'Error';
+    }
+  }
+}
+
+/**
+ * Handle system info error
+ */
+function handleSystemInfoError(error) {
+  console.error('Error loading system info:', error);
+}
+
+/**
+ * Load user management data
+ */
+function loadUserManagement() {
+  google.script.run
+    .withSuccessHandler(handleUserManagementResult)
+    .withFailureHandler(handleUserManagementError)
+    .getAllUsers();
+}
+
+/**
+ * Handle user management result
+ */
+function handleUserManagementResult(users) {
+  updateUserLists(users);
+  populateRemoveUserDropdown(users);
+}
+
+/**
+ * Handle user management error
+ */
+function handleUserManagementError(error) {
+  console.error('Error loading users:', error);
+  showModalMessage('Error loading user data: ' + (error.message || error), 'danger');
+}
+
+/**
+ * Update user lists display
+ */
+function updateUserLists(users) {
+  const adminUsersList = document.getElementById('adminUsersList');
+  const regularUsersList = document.getElementById('regularUsersList');
+  
+  if (adminUsersList) {
+    if (users.admins && users.admins.length > 0) {
+      adminUsersList.innerHTML = users.admins.map(admin => `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span><strong>${admin.name}</strong><br><small class="text-muted">${admin.email}</small></span>
+          <span class="badge bg-danger">Admin</span>
+        </div>
+      `).join('');
+    } else {
+      adminUsersList.innerHTML = '<p class="text-muted">No admin users found</p>';
+    }
+  }
+  
+  if (regularUsersList) {
+    if (users.regularUsers && users.regularUsers.length > 0) {
+      regularUsersList.innerHTML = users.regularUsers.map(user => `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span><strong>${user.name}</strong><br><small class="text-muted">${user.email}</small></span>
+          <span class="badge bg-primary">User</span>
+        </div>
+      `).join('');
+    } else {
+      regularUsersList.innerHTML = '<p class="text-muted">No regular users found</p>';
+    }
+  }
+}
+
+/**
+ * Populate remove user dropdown
+ */
+function populateRemoveUserDropdown(users) {
+  const userToRemove = document.getElementById('userToRemove');
+  if (!userToRemove) return;
+  
+  userToRemove.innerHTML = '<option value="">Select user to remove...</option>';
+  
+  // Add admin users
+  if (users.admins) {
+    users.admins.forEach(admin => {
+      const option = document.createElement('option');
+      option.value = admin.email;
+      option.textContent = `${admin.name} (${admin.email}) - Admin`;
+      userToRemove.appendChild(option);
+    });
+  }
+  
+  // Add regular users
+  if (users.regularUsers) {
+    users.regularUsers.forEach(user => {
+      const option = document.createElement('option');
+      option.value = user.email;
+      option.textContent = `${user.name} (${user.email}) - User`;
+      userToRemove.appendChild(option);
+    });
+  }
+}
+
+/**
+ * Show add user modal
+ */
+function showAddUserModal() {
+  const modal = new bootstrap.Modal(document.getElementById('addUserModal'));
+  const form = document.getElementById('addUserForm');
+  
+  if (form) {
+    form.reset();
+  }
+  
+  modal.show();
+}
+
+/**
+ * Add new user
+ */
+function addNewUser() {
+  const name = document.getElementById('newUserName').value.trim();
+  const email = document.getElementById('newUserEmail').value.trim();
+  const role = document.getElementById('newUserRole').value;
+  
+  // Clear any previous error messages
+  const errorMessages = document.querySelectorAll('.form-error-message');
+  errorMessages.forEach(msg => msg.remove());
+  
+  // Validate inputs
+  if (!name || !email || !role) {
+    showFormError('addUserForm', 'Please fill in all required fields');
+    return;
+  }
+  
+  // Validate email format
+  if (!isValidEmail(email)) {
+    showFormError('addUserForm', 'Please enter a valid email address');
+    return;
+  }
+  
+  // Freeze the submit button to prevent spam clicking
+  freezeButton('submitAddUserBtn', true, '<i class="bi bi-person-plus me-1"></i>Add User');
+  
+  google.script.run
+    .withSuccessHandler(handleAddUserSuccess)
+    .withFailureHandler(handleAddUserError)
+    .addUser(name, email, role);
+}
+
+/**
+ * Handle add user success
+ */
+function handleAddUserSuccess(result) {
+  // Unfreeze the button
+  freezeButton('submitAddUserBtn', false);
+  
+  if (result && result.success) {
+    showModalMessage(result.message, 'success');
+    
+    // Clear form
+    document.getElementById('newUserName').value = '';
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserRole').value = '';
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+    if (modal) {
+      setTimeout(() => modal.hide(), 1500);
+    }
+    
+    // Reload user management
+    setTimeout(() => {
+      loadUserManagement();
+    }, 2000);
+  } else {
+    showModalMessage(result ? result.message : 'Failed to add user', 'danger');
+  }
+}
+
+/**
+ * Handle add user error
+ */
+function handleAddUserError(error) {
+  // Unfreeze the button
+  freezeButton('submitAddUserBtn', false);
+  
+  console.error('Error adding user:', error);
+  showModalMessage('Error adding user: ' + (error.message || error), 'danger');
+}
+
+/**
+ * Show remove user modal
+ */
+function showRemoveUserModal() {
+  const modal = new bootstrap.Modal(document.getElementById('removeUserModal'));
+  modal.show();
+}
+
+/**
+ * Remove selected user
+ */
+function removeSelectedUser() {
+  const userToRemove = document.getElementById('userToRemove');
+  const email = userToRemove ? userToRemove.value : '';
+  
+  if (!email) {
+    alert('Please select a user to remove');
+    return;
+  }
+  
+  if (!confirm(`Are you sure you want to remove the user with email: ${email}?`)) {
+    return;
+  }
+  
+  google.script.run
+    .withSuccessHandler(handleRemoveUserSuccess)
+    .withFailureHandler(handleRemoveUserError)
+    .removeUser(email);
+}
+
+/**
+ * Handle remove user success
+ */
+function handleRemoveUserSuccess(result) {
+  if (result && result.success) {
+    alert(result.message);
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('removeUserModal'));
+    if (modal) {
+      modal.hide();
+    }
+    
+    // Reload user management
+    loadUserManagement();
+  } else {
+    alert(result ? result.message : 'Failed to remove user');
+  }
+}
+
+/**
+ * Handle remove user error
+ */
+function handleRemoveUserError(error) {
+  console.error('Error removing user:', error);
+  alert('Error removing user: ' + (error.message || error));
+}
+
+/**
+ * Confirm system reset
+ */
+function confirmSystemReset() {
+  const confirmation = prompt(
+    'WARNING: This will reset ALL application data and user settings.\n\n' +
+    'Type "RESET" to confirm this action:'
+  );
+  
+  if (confirmation === 'RESET') {
+    // Find the reset button and freeze it
+    const resetButton = document.querySelector('[onclick="confirmSystemReset()"]');
+    if (resetButton) {
+      const originalText = resetButton.innerHTML;
+      resetButton.disabled = true;
+      resetButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Resetting...';
+      
+      google.script.run
+        .withSuccessHandler((result) => handleSystemResetSuccess(result, resetButton, originalText))
+        .withFailureHandler((error) => handleSystemResetError(error, resetButton, originalText))
+        .resetApplication();
+    } else {
+      google.script.run
+        .withSuccessHandler(handleSystemResetSuccess)
+        .withFailureHandler(handleSystemResetError)
+        .resetApplication();
+    }
+  }
+}
+
+/**
+ * Handle system reset success
+ */
+function handleSystemResetSuccess(result, resetButton = null, originalText = null) {
+  if (resetButton) {
+    resetButton.disabled = false;
+    resetButton.innerHTML = originalText || '<i class="bi bi-trash me-2"></i>Reset Application';
+  }
+  
+  if (result && result.success) {
+    alert('Application has been reset successfully. The page will reload.');
+    window.location.reload();
+  } else {
+    alert('Reset failed: ' + (result ? result.message : 'Unknown error'));
+  }
+}
+
+/**
+ * Handle system reset error
+ */
+function handleSystemResetError(error, resetButton = null, originalText = null) {
+  if (resetButton) {
+    resetButton.disabled = false;
+    resetButton.innerHTML = originalText || '<i class="bi bi-trash me-2"></i>Reset Application';
+  }
+  
+  console.error('Error resetting system:', error);
+  alert('Reset failed: ' + (error.message || error));
+}
+
+/**
+ * Show modal message
+ */
+function showModalMessage(message, type) {
+  // Create or update modal message
+  let messageDiv = document.querySelector('.modal.show .modal-body .alert');
+  
+  if (!messageDiv) {
+    messageDiv = document.createElement('div');
+    const modalBody = document.querySelector('.modal.show .modal-body');
+    if (modalBody) {
+      modalBody.appendChild(messageDiv);
+    }
+  }
+  
+  messageDiv.className = `alert alert-${type}`;
+  messageDiv.textContent = message;
+  
+  // Auto-hide success messages
+  if (type === 'success') {
+    setTimeout(() => {
+      if (messageDiv.parentElement) {
+        messageDiv.remove();
+      }
+    }, 3000);
+  }
+}
+
+// Make functions globally accessible
+window.showAddUserModal = showAddUserModal;
+window.showRemoveUserModal = showRemoveUserModal;
+window.removeSelectedUser = removeSelectedUser;
+window.confirmSystemReset = confirmSystemReset;
+window.loadSettingsData = loadSettingsData;
+
+// Listen for authentication complete event
+window.addEventListener('authenticationComplete', function(event) {
+  setTimeout(() => {
+    checkAndShowAdminSettings();
+    loadSettingsData();
+  }, 500);
+});
+</script>

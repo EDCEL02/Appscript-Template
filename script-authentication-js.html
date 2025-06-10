@@ -1,0 +1,242 @@
+<!-- Authentication JavaScript -->
+<script>
+// Authentication and Content Visibility Management
+
+document.addEventListener('DOMContentLoaded', function() {
+  initializeAuthentication();
+});
+
+/**
+ * Initialize authentication and show appropriate content
+ */
+function initializeAuthentication() {
+  showLoadingIndicator(true);
+  
+  google.script.run
+    .withSuccessHandler(handleContentVisibility)
+    .withFailureHandler(handleAuthError)
+    .getContentVisibility();
+}
+
+/**
+ * Handle content visibility based on authentication status
+ */
+function handleContentVisibility(result) {
+  console.log('Content visibility result:', result);
+  
+  hideLoadingIndicator();
+  
+  if (!result || !result.visibility) {
+    console.error('Invalid response from server');
+    return;
+  }
+  
+  const { visibility, userInfo } = result;
+  
+  // Store user info globally for other scripts to use
+  window.currentUserInfo = userInfo;
+  
+  // Notify other parts of the application that authentication is complete
+  window.dispatchEvent(new CustomEvent('authenticationComplete', {
+    detail: { userInfo: userInfo }
+  }));
+  
+  // Hide both main views first
+  hideAllViews();
+  
+  // Show appropriate view based on authentication status
+  if (visibility.setupContainer || visibility.unauthorizedContent) {
+    showUnauthenticatedView(visibility, userInfo);
+  } else if (visibility.adminAndUserView || userInfo.isAuthenticated) {
+    showAuthenticatedView(userInfo);
+  }
+}
+
+/**
+ * Hide all main views
+ */
+function hideAllViews() {
+  const authenticatedView = document.getElementById('authenticatedView');
+  const unauthenticatedView = document.getElementById('unauthenticatedView');
+  
+  if (authenticatedView) {
+    authenticatedView.style.display = 'none';
+  }
+  if (unauthenticatedView) {
+    unauthenticatedView.style.display = 'none';
+  }
+}
+
+/**
+ * Show authenticated view and initialize dashboard
+ */
+function showAuthenticatedView(userInfo) {
+  const authenticatedView = document.getElementById('authenticatedView');
+  if (authenticatedView) {
+    authenticatedView.style.display = 'flex';
+    authenticatedView.classList.add('fade-in');
+  }
+  
+  // Initialize main dashboard components
+  initializeMainDashboard(userInfo);
+  
+  // Start auto-refresh when entering authenticated state
+  if (typeof startAutoRefresh === 'function') {
+    // Small delay to ensure everything is loaded
+    setTimeout(() => {
+      startAutoRefresh();
+    }, 1000);
+  }
+}
+
+/**
+ * Show unauthenticated view (setup or unauthorized)
+ */
+function showUnauthenticatedView(visibility, userInfo) {
+  // Stop auto-refresh when entering unauthenticated state
+  if (typeof stopAutoRefresh === 'function') {
+    stopAutoRefresh();
+  }
+  
+  const unauthenticatedView = document.getElementById('unauthenticatedView');
+  if (unauthenticatedView) {
+    unauthenticatedView.style.display = 'block';
+    unauthenticatedView.classList.add('fade-in');
+  }
+  
+  // Hide all containers first
+  hideAllContainers();
+  
+  // Show appropriate container
+  if (visibility.setupContainer) {
+    showContainer('setupContainer');
+  } else if (visibility.unauthorizedContent) {
+    showUnauthorizedContent(userInfo);
+  }
+}
+
+/**
+ * Hide all content containers
+ */
+function hideAllContainers() {
+  const containers = ['setupContainer', 'unauthorizedContent'];
+  containers.forEach(containerId => {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.style.display = 'none';
+    }
+  });
+}
+
+/**
+ * Show specific container
+ */
+function showContainer(containerId) {
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.style.display = 'block';
+    container.classList.add('fade-in');
+  }
+}
+
+/**
+ * Show unauthorized content with user email
+ */
+function showUnauthorizedContent(userInfo) {
+  showContainer('unauthorizedContent');
+  const emailElement = document.getElementById('unauthorizedEmail');
+  if (emailElement && userInfo) {
+    emailElement.textContent = userInfo.userEmail || 'Unknown';
+  }
+}
+
+/**
+ * Initialize main dashboard after authentication
+ */
+function initializeMainDashboard(userInfo) {
+  // Update sidebar user info
+  if (window.updateSidebarUserInfo) {
+    window.updateSidebarUserInfo(userInfo);
+  }
+  
+  // Load initial data for dashboard
+  setTimeout(() => {
+    if (typeof loadDashboardData === 'function') {
+      loadDashboardData();
+    }
+    if (typeof loadDataTable === 'function') {
+      loadDataTable();
+    }
+  }, 500);
+}
+
+/**
+ * Handle authentication errors
+ */
+function handleAuthError(error) {
+  console.error('Authentication error:', error);
+  hideLoadingIndicator();
+  
+  // Show a generic error message
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'alert alert-danger position-fixed top-50 start-50 translate-middle';
+  errorDiv.style.zIndex = '9999';
+  errorDiv.innerHTML = `
+    <h4>Authentication Error</h4>
+    <p>Unable to verify your access. Please try refreshing the page.</p>
+    <button class="btn btn-outline-dark" onclick="window.location.reload()">Refresh Page</button>
+  `;
+  document.body.appendChild(errorDiv);
+}
+
+/**
+ * Show/hide loading indicator
+ */
+function showLoadingIndicator(show) {
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  if (loadingIndicator) {
+    loadingIndicator.style.display = show ? 'block' : 'none';
+  }
+}
+
+function hideLoadingIndicator() {
+  showLoadingIndicator(false);
+}
+
+/**
+ * Refresh authentication state
+ */
+function refreshAuthentication() {
+  initializeAuthentication();
+}
+
+/**
+ * Check if current user is admin
+ */
+function isUserAdmin() {
+  return window.currentUserInfo && window.currentUserInfo.isAdmin;
+}
+
+/**
+ * Get current user info
+ */
+function getCurrentUserInfo() {
+  return window.currentUserInfo || null;
+}
+
+// Make authentication utility functions globally accessible
+window.refreshAuthentication = refreshAuthentication;
+window.isUserAdmin = isUserAdmin;
+window.getCurrentUserInfo = getCurrentUserInfo;
+window.initializeAuthentication = initializeAuthentication;
+
+/**
+ * Check authentication status (for other scripts)
+ */
+function checkAuthStatus() {
+  return window.currentUserInfo || { isAuthenticated: false };
+}
+
+// Make checkAuthStatus globally accessible
+window.checkAuthStatus = checkAuthStatus;
+</script>

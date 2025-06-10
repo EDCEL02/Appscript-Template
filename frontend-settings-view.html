@@ -1,0 +1,250 @@
+<!-- Settings View -->
+<div class="container-fluid" id="settingsView" style="display: none;">
+  <div class="row">
+    <div class="col-12">
+      <h4 class="mb-4">
+        <i class="bi bi-gear me-2"></i>Settings
+      </h4>
+
+      <!-- Application Preferences -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-sliders me-2"></i>Application Preferences
+          </h5>
+        </div>
+        <div class="card-body">
+          <!-- Compact View Toggle -->
+          <div class="row align-items-center mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Compact View</label>
+              <p class="text-muted small mb-0">Enable compact table layout to show more data</p>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="compactViewToggle">
+                <label class="form-check-label" for="compactViewToggle">Enable compact view</label>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Auto-refresh Settings -->
+          <div class="row align-items-center mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Auto-refresh Data</label>
+              <p class="text-muted small mb-0">Automatically refresh data at regular intervals</p>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                <label class="form-check-label" for="autoRefreshToggle">Enable auto-refresh</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Refresh Interval -->
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <label class="form-label">Refresh Interval</label>
+              <p class="text-muted small mb-0">How often to refresh data automatically</p>
+            </div>
+            <div class="col-md-6">
+              <select class="form-select" id="refreshInterval">
+                <option value="15">15 seconds</option>
+                <option value="30" selected>30 seconds</option>
+                <option value="60">1 minute</option>
+                <option value="120">2 minutes</option>
+                <option value="300">5 minutes</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Sheets Connection -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i>Google Sheets Connection
+          </h5>
+        </div>        <div class="card-body">
+          <div class="row align-items-end">
+            <div class="col-md-12">
+              <label for="sheetLinkInput" class="form-label">Spreadsheet URL</label>
+              <div class="d-flex gap-2">
+                <input type="url" class="form-control form-control-sm" id="sheetLinkInput" 
+                      placeholder="https://docs.google.com/spreadsheets/d/your-sheet-id/edit">
+                <button class="btn btn-primary btn-sm" onclick="applySheetLink()">
+                  Update
+                </button>
+              </div>
+              <div class="form-text mt-1">
+                Currently connected to: <span id="spreadsheetTitle" class="fw-bold">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Management (Admin Only) -->
+      <div class="card mb-4" id="userManagementSection" style="display: none;">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-people me-2"></i>User Management
+            <span class="badge bg-warning text-dark ms-2">Admin Only</span>
+          </h5>
+        </div>
+        <div class="card-body">
+          <!-- Current Users -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <h6>Admin Users</h6>
+              <div id="adminUsersList" class="border rounded p-3 bg-light">
+                Loading...
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6>Regular Users</h6>
+              <div id="regularUsersList" class="border rounded p-3 bg-light">
+                Loading...
+              </div>
+            </div>
+          </div>
+
+          <!-- User Management Actions -->
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <button class="btn btn-success w-100" onclick="showAddUserModal()">
+                <i class="bi bi-person-plus me-2"></i>Add New User
+              </button>
+            </div>
+            <div class="col-md-6 mb-3">
+              <button class="btn btn-outline-danger w-100" onclick="showRemoveUserModal()">
+                <i class="bi bi-person-dash me-2"></i>Remove User
+              </button>
+            </div>
+          </div>
+
+          <!-- System Reset (Dangerous) -->
+          <hr>
+          <div class="alert alert-warning">
+            <h6><i class="bi bi-exclamation-triangle me-2"></i>Danger Zone</h6>
+            <p class="mb-2">Reset all application settings and user data. This action cannot be undone.</p>
+            <button class="btn btn-outline-danger btn-sm" onclick="confirmSystemReset()">
+              <i class="bi bi-trash me-2"></i>Reset Application
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Information -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-info-circle me-2"></i>System Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-4">Version:</dt>
+                <dd class="col-sm-8">1.0.0</dd>
+                <dt class="col-sm-4">Setup Date:</dt>
+                <dd class="col-sm-8" id="setupDate">Loading...</dd>
+                <dt class="col-sm-4">Your Role:</dt>
+                <dd class="col-sm-8" id="currentUserRole">Loading...</dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <dl class="row">
+                <dt class="col-sm-4">Total Users:</dt>
+                <dd class="col-sm-8" id="totalUsersCount">Loading...</dd>
+                <dt class="col-sm-4">Last Activity:</dt>
+                <dd class="col-sm-8" id="lastActivity">Loading...</dd>
+                <dt class="col-sm-4">Status:</dt>
+                <dd class="col-sm-8">
+                  <span class="badge bg-success">Online</span>
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addUserForm">
+          <div class="mb-3">
+            <label for="newUserName" class="form-label">Name *</label>
+            <input type="text" class="form-control" id="newUserName" required>
+          </div>
+          <div class="mb-3">
+            <label for="newUserEmail" class="form-label">Email *</label>
+            <input type="email" class="form-control" id="newUserEmail" required>
+          </div>
+          <div class="mb-3">
+            <label for="newUserRole" class="form-label">Role *</label>
+            <select class="form-select" id="newUserRole" required>
+              <option value="">Select Role...</option>
+              <option value="admin">Administrator</option>
+              <option value="user">Regular User</option>
+            </select>
+          </div>
+          <div class="alert alert-info">
+            <small><i class="bi bi-info-circle me-1"></i>
+            The new user will receive access immediately after being added.</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="submitAddUserBtn">
+          <i class="bi bi-person-plus me-1"></i>Add User
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Remove User Modal -->
+<div class="modal fade" id="removeUserModal" tabindex="-1" aria-labelledby="removeUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="removeUserModalLabel">Remove User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="userToRemove" class="form-label">Select User to Remove</label>
+          <select class="form-select" id="userToRemove" required>
+            <option value="">Loading users...</option>
+          </select>
+        </div>
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Warning:</strong> This action cannot be undone. The selected user will lose access immediately.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="removeSelectedUser()">
+          <i class="bi bi-person-dash me-1"></i>Remove User
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

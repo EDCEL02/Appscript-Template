@@ -1,0 +1,401 @@
+<!-- Auto-refresh System -->
+<script>
+// Auto-refresh configuration
+let autoRefreshInterval = null;
+let autoRefreshEnabled = false;
+let REFRESH_INTERVAL = 30000; // 30 seconds in milliseconds (configurable)
+
+// Track if user is actively interacting to prevent unnecessary refreshes
+let userIsActive = false;
+let lastActivityTime = Date.now();
+
+/**
+ * Start auto-refresh system
+ */
+function startAutoRefresh() {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+  }
+  
+  autoRefreshEnabled = true;
+  
+  autoRefreshInterval = setInterval(() => {
+    // Check if user is authenticated and not in setup mode
+    if (!isUserAuthenticated() || isInSetupMode()) {
+      return;
+    }
+    
+    // Check if user is active
+    const timeSinceActivity = Date.now() - lastActivityTime;
+    const isUserIdle = timeSinceActivity > 5000; // 5 seconds
+    
+    // Only refresh if user is idle and page is visible
+    if (isUserIdle && !document.hidden && !userIsActive) {
+      refreshCurrentView();
+    }
+  }, REFRESH_INTERVAL);
+  
+  updateRefreshStatus();
+  console.log('Auto-refresh started with interval:', REFRESH_INTERVAL / 1000, 'seconds');
+}
+
+/**
+ * Stop auto-refresh system
+ */
+function stopAutoRefresh() {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+  }
+  
+  autoRefreshEnabled = false;
+  updateRefreshStatus();
+  console.log('Auto-refresh stopped');
+}
+
+/**
+ * Refresh the currently active view
+ */
+function refreshCurrentView() {
+  // Check if user is authenticated and not in setup mode
+  if (!isUserAuthenticated() || isInSetupMode()) {
+    console.log('Skipping auto-refresh: User not authenticated or in setup mode');
+    return;
+  }
+  
+  const currentView = getCurrentViewName();
+  
+  if (currentView === 'dataView' && typeof loadDataTable === 'function') {
+    console.log('Auto-refreshing data table...');
+    loadDataTable();
+    showRefreshIndicator('Data');
+  } else if (currentView === 'dashboardView' && typeof loadDashboardData === 'function') {
+    console.log('Auto-refreshing dashboard...');
+    loadDashboardData();
+    showRefreshIndicator('Dashboard');
+  }
+}
+
+/**
+ * Show refresh indicator
+ */
+function showRefreshIndicator(viewName) {
+  // Create a temporary notification
+  const notification = document.createElement('div');
+  notification.className = 'position-fixed bg-primary text-white px-3 py-2 rounded';
+  notification.style.cssText = `
+    top: 20px; right: 20px; z-index: 9999; 
+    font-size: 0.875rem; opacity: 0.9;
+    animation: slideInRight 0.3s ease-out;
+  `;
+  notification.innerHTML = `
+    <i class="bi bi-arrow-clockwise me-2"></i>
+    ${viewName} refreshed
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.style.animation = 'slideOutRight 0.3s ease-in';
+      setTimeout(() => notification.remove(), 300);
+    }
+  }, 2000);
+}
+
+/**
+ * Update refresh status indicators
+ */
+function updateRefreshStatus() {
+  // Update sidebar toggle
+  const sidebarToggle = document.getElementById('sidebarAutoRefreshToggle');
+  if (sidebarToggle) {
+    sidebarToggle.checked = autoRefreshEnabled;
+  }
+  
+  // Update settings toggle
+  const settingsToggle = document.getElementById('autoRefreshToggle');
+  if (settingsToggle) {
+    settingsToggle.checked = autoRefreshEnabled;
+  }
+  
+  // Update refresh status icon in tables
+  const refreshStatus = document.getElementById('refreshStatus');
+  if (refreshStatus) {
+    refreshStatus.innerHTML = autoRefreshEnabled ? '🔄' : '⏸️';
+    refreshStatus.title = autoRefreshEnabled ? 'Auto-refresh ON' : 'Auto-refresh OFF';
+  }
+}
+
+/**
+ * Track user activity to prevent unnecessary refreshes during interaction
+ */
+function trackUserActivity() {
+  const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+  
+  events.forEach(event => {
+    document.addEventListener(event, () => {
+      userIsActive = true;
+      lastActivityTime = Date.now();
+      
+      // Reset user activity flag after a short delay
+      setTimeout(() => {
+        userIsActive = false;
+      }, 1000);
+    }, { passive: true });
+  });
+}
+
+/**
+ * Manual refresh function
+ */
+function manualRefresh() {
+  // Check if user is authenticated and not in setup mode
+  if (!isUserAuthenticated() || isInSetupMode()) {
+    console.log('Manual refresh blocked: User not authenticated or in setup mode');
+    return;
+  }
+  
+  refreshCurrentView();
+  
+  // Show immediate feedback
+  const notification = document.createElement('div');
+  notification.className = 'position-fixed bg-success text-white px-3 py-2 rounded';
+  notification.style.cssText = `
+    top: 20px; right: 20px; z-index: 9999; 
+    font-size: 0.875rem; opacity: 0.9;
+  `;
+  notification.innerHTML = `
+    <i class="bi bi-check-circle me-2"></i>
+    Data refreshed manually
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 2000);
+}
+
+/**
+ * Get current view name
+ */
+function getCurrentViewName() {
+  const views = ['dashboardView', 'dataView', 'settingsView', 'helpView'];
+  
+  for (const viewId of views) {
+    const element = document.getElementById(viewId);
+    if (element && element.style.display !== 'none') {
+      return viewId;
+    }
+  }
+  
+  return 'dashboardView'; // default
+}
+
+/**
+ * Initialize auto-refresh system
+ */
+function initializeAutoRefresh() {
+  console.log('Initializing auto-refresh system...');
+  
+  // Load preferences
+  loadAutoRefreshPreferences();
+  
+  // Track user activity
+  trackUserActivity();
+  
+  // Start auto-refresh if enabled
+  if (autoRefreshEnabled) {
+    startAutoRefresh();
+  }
+  
+  // Set up interval selector in sidebar
+  const intervalSelector = document.getElementById('sidebarRefreshInterval');
+  if (intervalSelector) {
+    intervalSelector.value = REFRESH_INTERVAL / 1000;
+    intervalSelector.addEventListener('change', function() {
+      updateRefreshInterval(parseInt(this.value) * 1000);
+    });
+  }
+  
+  // Add refresh controls to views
+  addRefreshControls();
+  
+  console.log('Auto-refresh system initialized');
+}
+
+/**
+ * Load auto-refresh preferences from localStorage
+ */
+function loadAutoRefreshPreferences() {
+  const savedEnabled = localStorage.getItem('autoRefreshEnabled');
+  const savedInterval = localStorage.getItem('autoRefreshInterval');
+  
+  autoRefreshEnabled = savedEnabled !== 'false'; // default to true
+  
+  if (savedInterval) {
+    REFRESH_INTERVAL = parseInt(savedInterval);
+  }
+  
+  updateRefreshStatus();
+}
+
+/**
+ * Save auto-refresh preferences to localStorage
+ */
+function saveAutoRefreshPreferences() {
+  localStorage.setItem('autoRefreshEnabled', autoRefreshEnabled.toString());
+  localStorage.setItem('autoRefreshInterval', REFRESH_INTERVAL.toString());
+}
+
+/**
+ * Add refresh controls to views
+ */
+function addRefreshControls() {
+  updateRefreshStatus();
+}
+
+/**
+ * Toggle auto-refresh on/off
+ */
+function toggleAutoRefresh() {
+  if (autoRefreshEnabled) {
+    stopAutoRefresh();
+  } else {
+    startAutoRefresh();
+  }
+  
+  saveAutoRefreshPreferences();
+}
+
+/**
+ * Update refresh interval
+ */
+function updateRefreshInterval(newInterval) {
+  REFRESH_INTERVAL = newInterval;
+  
+  // Restart auto-refresh with new interval if it's currently running
+  if (autoRefreshEnabled) {
+    stopAutoRefresh();
+    startAutoRefresh();
+  }
+  
+  saveAutoRefreshPreferences();
+  console.log('Refresh interval updated to:', REFRESH_INTERVAL / 1000, 'seconds');
+}
+
+/**
+ * Initialize settings handlers for auto-refresh
+ */
+function initializeSettingsHandlers() {
+  // Settings page auto-refresh toggle
+  const settingsToggle = document.getElementById('autoRefreshToggle');
+  if (settingsToggle) {
+    settingsToggle.addEventListener('change', function() {
+      if (this.checked !== autoRefreshEnabled) {
+        toggleAutoRefresh();
+      }
+    });
+  }
+  
+  // Settings page interval selector
+  const settingsInterval = document.getElementById('refreshInterval');
+  if (settingsInterval) {
+    settingsInterval.value = REFRESH_INTERVAL / 1000;
+    settingsInterval.addEventListener('change', function() {
+      updateRefreshInterval(parseInt(this.value) * 1000);
+    });
+  }
+}
+
+// Make functions globally available
+window.startAutoRefresh = startAutoRefresh;
+window.stopAutoRefresh = stopAutoRefresh;
+window.manualRefresh = manualRefresh;
+window.toggleAutoRefresh = toggleAutoRefresh;
+window.refreshCurrentView = refreshCurrentView;
+window.updateRefreshInterval = updateRefreshInterval;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait a bit for other scripts to load
+  setTimeout(initializeAutoRefresh, 3000);
+  
+  // Initialize settings handlers
+  setTimeout(initializeSettingsHandlers, 4000);
+});
+
+// Clean up when page is unloaded
+window.addEventListener('beforeunload', function() {
+  stopAutoRefresh();
+});
+
+// Pause auto-refresh when page is not visible
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    console.log('Page hidden, auto-refresh paused');
+  } else {
+    console.log('Page visible, auto-refresh resumed');
+    if (autoRefreshEnabled) {
+      // Refresh immediately when page becomes visible
+      setTimeout(refreshCurrentView, 1000);
+    }
+  }
+});
+
+// Enhanced debugging function
+window.debugAutoRefresh = function() {
+  console.log('Auto-refresh Debug Info:');
+  console.log('- Enabled:', autoRefreshEnabled);
+  console.log('- Interval:', REFRESH_INTERVAL / 1000, 'seconds');
+  console.log('- Current view:', getCurrentViewName());
+  console.log('- User active:', userIsActive);
+  console.log('- Page hidden:', document.hidden);
+  console.log('- Time since last activity:', (Date.now() - lastActivityTime) / 1000, 'seconds');
+};
+
+/**
+ * Check if user is authenticated (not unauthorized or in setup mode)
+ */
+function isUserAuthenticated() {
+  // Check if unauthorized content is visible
+  const unauthorizedContent = document.getElementById('unauthorizedContent');
+  if (unauthorizedContent && unauthorizedContent.style.display !== 'none') {
+    return false;
+  }
+  
+  // Check if authenticated view is visible
+  const authenticatedView = document.getElementById('authenticatedView');
+  if (!authenticatedView || authenticatedView.style.display === 'none') {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Check if user is in setup mode
+ */
+function isInSetupMode() {
+  const setupContainer = document.getElementById('setupContainer');
+  return setupContainer && setupContainer.style.display !== 'none';
+}
+
+// Add CSS animations for notifications
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+`;
+document.head.appendChild(style);
+</script>

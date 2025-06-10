@@ -1,0 +1,58 @@
+# Clasp ignore file - prevents files from being uploaded to Google Apps Script
+
+# Documentation files
+MANUAL/
+MANUAL/**
+*.md
+
+# Template Database
+TEMPLATE/
+TEMPLATE-DATABASE/**
+*.md
+
+
+# Testing files  
+PRODUCTION TESTING/
+PRODUCTION TESTING/**
+
+# Development files
+package.json
+.github/
+.github/**
+
+# Git files
+.git/
+.git/**
+.gitignore
+
+# Node modules (if any)
+node_modules/
+node_modules/**
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*.backup
+
+# Clasp ignore file itself (the .json version)
+.claspignore.json
+

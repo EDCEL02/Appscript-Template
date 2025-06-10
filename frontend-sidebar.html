@@ -1,0 +1,97 @@
+<!-- Sidebar Navigation Component -->
+<div class="sidebar" id="sidebar">
+  <!-- Sidebar Header -->
+  <div class="sidebar-header d-flex align-items-center">
+    <div class="logo-container">
+      <h5 class="mb-0">Your App</h5>
+    </div>
+  </div>
+  
+  <!-- User Info Section -->
+  <div class="user-info">
+    <div class="d-flex align-items-center">
+      <div class="user-avatar me-2">
+        <i class="bi bi-person-circle"></i>
+      </div>
+      <div class="user-details">
+        <div class="user-email" id="sidebarUserEmail">Loading...</div>
+        <div class="user-role">
+          <span class="badge bg-secondary" id="sidebarUserRole">User</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Menu -->
+  <div class="sidebar-menu">
+    <ul class="nav flex-column">
+      <li class="nav-item">
+        <a class="nav-link active" id="navDashboard" href="#" onclick="showSection('dashboardView', this)">
+          <i class="bi bi-house-door me-2"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="navData" href="#" onclick="showSection('dataView', this)">
+          <i class="bi bi-table me-2"></i>
+          <span>Data Management</span>
+        </a>
+      </li>
+      <li class="nav-item mt-3">
+        <hr class="text-muted">
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="navSettings" href="#" onclick="showSection('settingsView', this)">
+          <i class="bi bi-gear me-2"></i>
+          <span>Settings</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="navHelp" href="#" onclick="showSection('helpView', this)">
+          <i class="bi bi-question-circle me-2"></i>
+          <span>Help</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Sidebar Footer -->
+  <div class="sidebar-footer">
+    <!-- Dark Mode Toggle -->
+    <div class="form-check form-switch mb-3">
+      <input class="form-check-input" type="checkbox" id="darkModeSwitch">
+      <label class="form-check-label" for="darkModeSwitch">
+        <i class="bi bi-moon me-1"></i>Dark Mode
+      </label>
+    </div>
+
+    <!-- Auto-refresh Controls -->
+    <div class="auto-refresh-controls mb-3">
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" id="sidebarAutoRefreshToggle" checked>
+        <label class="form-check-label" for="sidebarAutoRefreshToggle">
+          <i class="bi bi-arrow-clockwise me-1"></i>Auto-refresh
+        </label>
+      </div>
+      <div class="d-flex align-items-center">
+        <small class="text-muted me-2">Interval:</small>
+        <select class="form-select form-select-sm" id="sidebarRefreshInterval" style="width: 100px;">
+          <option value="15">15s</option>
+          <option value="30" selected>30s</option>
+          <option value="60">1m</option>
+          <option value="120">2m</option>
+          <option value="300">5m</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div class="connection-status">
+      <div class="d-flex align-items-center mb-1">
+        <i class="bi bi-link-45deg me-2 text-muted"></i>
+        <small class="text-muted">Connected Sheet</small>
+      </div>
+      <div id="sheetTitleDisplay" class="text-truncate small">Loading...</div>
+    </div>
+  </div>
+</div>

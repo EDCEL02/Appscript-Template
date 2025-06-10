@@ -1,0 +1,259 @@
+<!-- Initialization JavaScript -->
+<script>
+// Setup form and initialization functionality
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize fields on page load
+  generateAdminFields();
+  generateUserFields();
+  
+  // Setup event listeners for quantity changes
+  const numAdminsInput = document.getElementById('numAdmins');
+  const numUsersInput = document.getElementById('numUsers');
+  
+  if (numAdminsInput) {
+    numAdminsInput.addEventListener('input', function() {
+      generateAdminFields(true); // true = preserve existing data
+    });
+  }
+  
+  if (numUsersInput) {
+    numUsersInput.addEventListener('input', function() {
+      generateUserFields(true); // true = preserve existing data
+    });
+  }
+  
+  // Setup form submission handler
+  const setupForm = document.getElementById('setupForm');
+  if (setupForm) {
+    setupForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      submitSetupForm();
+    });
+  }
+});
+
+/**
+ * Generate admin input fields based on number
+ */
+function generateAdminFields(preserveData = false) {
+  const numAdminsInput = document.getElementById('numAdmins');
+  const container = document.getElementById('adminFieldsContainer');
+  
+  if (!numAdminsInput || !container) return;
+  
+  const numAdmins = parseInt(numAdminsInput.value) || 1;
+  
+  // Store existing values if preserving data
+  let existingData = [];
+  if (preserveData) {
+    const existingNameInputs = container.querySelectorAll('input[name^="adminName_"]');
+    const existingEmailInputs = container.querySelectorAll('input[name^="adminEmail_"]');
+    existingData = Array.from(existingNameInputs).map((nameInput, index) => ({
+      name: nameInput.value,
+      email: existingEmailInputs[index] ? existingEmailInputs[index].value : ''
+    }));
+  }
+  
+  // Clear existing fields
+  container.innerHTML = '';
+  
+  // Generate new fields
+  for (let i = 0; i < numAdmins; i++) {
+    const fieldGroup = document.createElement('div');
+    fieldGroup.className = 'row mb-2';
+    fieldGroup.innerHTML = `
+      <div class="col-md-6">
+        <input type="text" class="form-control form-control-sm" 
+               name="adminName_${i}" placeholder="Admin ${i + 1} Name" 
+               value="${existingData[i] ? existingData[i].name : ''}" required>
+      </div>
+      <div class="col-md-6">
+        <input type="email" class="form-control form-control-sm" 
+               name="adminEmail_${i}" placeholder="admin${i + 1}@company.com" 
+               value="${existingData[i] ? existingData[i].email : ''}" required>
+      </div>
+    `;
+    container.appendChild(fieldGroup);
+  }
+}
+
+/**
+ * Generate user input fields based on number
+ */
+function generateUserFields(preserveData = false) {
+  const numUsersInput = document.getElementById('numUsers');
+  const container = document.getElementById('userFieldsContainer');
+  
+  if (!numUsersInput || !container) return;
+  
+  const numUsers = parseInt(numUsersInput.value) || 0;
+  
+  // Store existing values if preserving data
+  let existingData = [];
+  if (preserveData) {
+    const existingNameInputs = container.querySelectorAll('input[name^="userName_"]');
+    const existingEmailInputs = container.querySelectorAll('input[name^="userEmail_"]');
+    existingData = Array.from(existingNameInputs).map((nameInput, index) => ({
+      name: nameInput.value,
+      email: existingEmailInputs[index] ? existingEmailInputs[index].value : ''
+    }));
+  }
+  
+  // Clear existing fields
+  container.innerHTML = '';
+  
+  // Generate new fields
+  for (let i = 0; i < numUsers; i++) {
+    const fieldGroup = document.createElement('div');
+    fieldGroup.className = 'row mb-2';
+    fieldGroup.innerHTML = `
+      <div class="col-md-6">
+        <input type="text" class="form-control form-control-sm" 
+               name="userName_${i}" placeholder="User ${i + 1} Name" 
+               value="${existingData[i] ? existingData[i].name : ''}" required>
+      </div>
+      <div class="col-md-6">
+        <input type="email" class="form-control form-control-sm" 
+               name="userEmail_${i}" placeholder="user${i + 1}@company.com" 
+               value="${existingData[i] ? existingData[i].email : ''}" required>
+      </div>
+    `;
+    container.appendChild(fieldGroup);
+  }
+  
+  // Show helpful message if no users
+  if (numUsers === 0) {
+    container.innerHTML = '<p class="text-muted small">No regular users will be added. You can add them later from Settings.</p>';
+  }
+}
+
+/**
+ * Handle form submission for initial setup
+ */
+function submitSetupForm() {
+  showLoading(true);
+  
+  // Collect admin data
+  const adminNameInputs = document.querySelectorAll('input[name^="adminName_"]');
+  const adminEmailInputs = document.querySelectorAll('input[name^="adminEmail_"]');
+  const adminData = Array.from(adminNameInputs).map((nameInput, i) => ({
+    name: nameInput.value.trim(),
+    email: adminEmailInputs[i].value.trim()
+  })).filter(obj => obj.name && obj.email);
+
+  // Collect user data
+  const userNameInputs = document.querySelectorAll('input[name^="userName_"]');
+  const userEmailInputs = document.querySelectorAll('input[name^="userEmail_"]');
+  const userData = Array.from(userNameInputs).map((nameInput, i) => ({
+    name: nameInput.value.trim(),
+    email: userEmailInputs[i].value.trim()
+  })).filter(obj => obj.name && obj.email);
+
+  // Get sheets link
+  const sheetsLink = document.getElementById('sheetsLink').value.trim();
+
+  // Validate required fields
+  if (adminData.length === 0) {
+    showSetupMessage('At least one admin user is required', 'danger');
+    showLoading(false);
+    return;
+  }
+
+  if (!sheetsLink) {
+    showSetupMessage('Google Sheets link is required', 'danger');
+    showLoading(false);
+    return;
+  }
+
+  // Prepare data for backend
+  const setupData = {
+    admins: adminData,
+    users: userData
+  };
+
+  // Call backend setup function
+  google.script.run
+    .withSuccessHandler(handleSetupResult)
+    .withFailureHandler(handleSetupError)
+    .performInitialSetup(
+      adminData.map(admin => admin.email).join(','),
+      userData.map(user => user.email).join(','),
+      sheetsLink,
+      JSON.stringify(setupData)
+    );
+}
+
+/**
+ * Handle setup result from backend
+ */
+function handleSetupResult(result) {
+  showLoading(false);
+  
+  if (result && result.success) {
+    showSetupMessage(result.message, 'success');
+    
+    // Redirect to main app after successful setup
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  } else {
+    showSetupMessage(result ? result.message : 'Setup failed', 'danger');
+  }
+}
+
+/**
+ * Handle setup error
+ */
+function handleSetupError(error) {
+  showLoading(false);
+  console.error('Setup error:', error);
+  showSetupMessage('Setup failed: ' + (error.message || error), 'danger');
+}
+
+/**
+ * Show setup form message
+ */
+function showSetupMessage(message, type) {
+  const messageDiv = document.getElementById('setupMessage');
+  if (messageDiv) {
+    messageDiv.className = `alert alert-${type}`;
+    messageDiv.textContent = message;
+    messageDiv.style.display = 'block';
+    
+    // Auto-hide success messages
+    if (type === 'success') {
+      setTimeout(() => {
+        messageDiv.style.display = 'none';
+      }, 5000);
+    }
+  }
+}
+
+/**
+ * Show or hide loading indicator
+ */
+function showLoading(isLoading) {
+  const submitBtn = document.querySelector('#setupForm button[type="submit"]');
+  const setupMessage = document.getElementById('setupMessage');
+  
+  if (submitBtn) {
+    if (isLoading) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Setting up...';
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Complete Setup';
+    }
+  }
+  
+  if (setupMessage && isLoading) {
+    setupMessage.style.display = 'none';
+  }
+}
+
+// Make functions globally accessible for other scripts
+window.generateAdminFields = generateAdminFields;
+window.generateUserFields = generateUserFields;
+window.submitSetupForm = submitSetupForm;
+</script>

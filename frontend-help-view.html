@@ -1,0 +1,233 @@
+<!-- Help and Documentation View -->
+<div class="container-fluid" id="helpView" style="display: none;">
+  <div class="row">
+    <div class="col-12">
+      <h4 class="mb-4">
+        <i class="bi bi-question-circle me-2"></i>Help & Documentation
+      </h4>
+
+      <!-- Quick Start Guide -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-rocket-takeoff me-2"></i>Quick Start Guide
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              <h6>Getting Started</h6>
+              <ol>
+                <li><strong>Setup:</strong> Complete the initial setup by configuring admin users and connecting your Google Sheet</li>
+                <li><strong>Data Management:</strong> Navigate to the Data Management section to view, add, edit, or delete records</li>
+                <li><strong>User Management:</strong> (Admin only) Add or remove users from the Settings page</li>
+                <li><strong>Settings:</strong> Customize application preferences and manage connections</li>
+                <li><strong>Auto-refresh:</strong> Data automatically refreshes every 30 seconds by default</li>
+              </ol>
+            </div>
+            <div class="col-md-4">
+              <div class="alert alert-info">
+                <h6><i class="bi bi-lightbulb me-2"></i>Pro Tip</h6>
+                <p class="mb-0">Use keyboard shortcuts: <kbd>Ctrl+R</kbd> to refresh data manually.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features Overview -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-star me-2"></i>Features Overview
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <h6><i class="bi bi-database text-primary me-2"></i>Data Management</h6>
+              <ul>
+                <li>Create, read, update, and delete records</li>
+                <li>Advanced filtering and search capabilities</li>
+                <li>Bulk operations (select multiple records)</li>
+                <li>Data export to CSV format</li>
+                <li>Real-time data synchronization</li>
+              </ul>
+            </div>
+            <div class="col-md-6 mb-3">
+              <h6><i class="bi bi-people text-success me-2"></i>User Management</h6>
+              <ul>
+                <li>Role-based access control</li>
+                <li>Admin and regular user roles</li>
+                <li>User authentication via Google accounts</li>
+                <li>Dynamic user addition/removal</li>
+              </ul>
+            </div>
+            <div class="col-md-6 mb-3">
+              <h6><i class="bi bi-bar-chart text-info me-2"></i>Analytics & Visualization</h6>
+              <ul>
+                <li>Interactive charts and graphs</li>
+                <li>Dashboard with key metrics</li>
+                <li>Real-time data visualization</li>
+                <li>Export charts as images</li>
+              </ul>
+            </div>
+            <div class="col-md-6 mb-3">
+              <h6><i class="bi bi-gear text-warning me-2"></i>Customization</h6>
+              <ul>
+                <li>Dark/Light mode toggle</li>
+                <li>Configurable auto-refresh intervals</li>
+                <li>Compact view options</li>
+                <li>Dynamic Google Sheets connection</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frequently Asked Questions -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-question-circle me-2"></i>Frequently Asked Questions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="accordion" id="faqAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="faq1">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                  How do I connect to a different Google Sheet?
+                </button>
+              </h2>
+              <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                  Go to Settings → Google Sheets Connection, paste your new spreadsheet URL, and click "Update Connection". 
+                  Make sure the new sheet has the correct column headers.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="faq2">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                  How do I add new users to the system?
+                </button>
+              </h2>
+              <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                  Only administrators can add users. Go to Settings → User Management → Add New User. 
+                  Enter the user's name, email, and select their role (Admin or Regular User).
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="faq3">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                  How does auto-refresh work?
+                </button>
+              </h2>
+              <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                  Auto-refresh automatically updates your data at set intervals (default: 30 seconds). 
+                  It pauses when you're actively using the interface and resumes when idle. 
+                  You can configure or disable it in Settings.
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="faq4">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
+                  Can I export my data?
+                </button>
+              </h2>
+              <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body">
+                  Yes! Click the download icon in the Data Management section to export filtered data as CSV. 
+                  You can also click the external link icon to open the source Google Sheet directly.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Technical Requirements -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-cpu me-2"></i>Technical Requirements
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Browser Support</h6>
+              <ul class="list-unstyled">
+                <li><i class="bi bi-check-circle text-success me-2"></i>Chrome 80+</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i>Firefox 75+</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i>Safari 13+</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i>Edge 80+</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6>Google Account Requirements</h6>
+              <ul class="list-unstyled">
+                <li><i class="bi bi-check-circle text-success me-2"></i>Google account with Sheets access</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i>JavaScript enabled</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i>Cookies enabled</li>
+                <li><i class="bi bi-check-circle text-success me-2"></i>Internet connection</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Support & Contact -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-headset me-2"></i>Support & Contact
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              <p>Need help or have questions? We're here to assist you!</p>
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>For Technical Issues:</h6>
+                  <p class="mb-2">
+                    <i class="bi bi-envelope me-2"></i>
+                    <a href="mailto:support@yourcompany.com">support@yourcompany.com</a>
+                  </p>
+                  <p class="mb-2">
+                    <i class="bi bi-telephone me-2"></i>
+                    +1 (555) 123-4567
+                  </p>
+                </div>
+                <div class="col-md-6">
+                  <h6>For Access Requests:</h6>
+                  <p class="mb-2">
+                    <i class="bi bi-envelope me-2"></i>
+                    <a href="mailto:admin@yourcompany.com">admin@yourcompany.com</a>
+                  </p>
+                  <p class="mb-2">
+                    <i class="bi bi-chat-dots me-2"></i>
+                    Live Chat (Mon-Fri 9AM-5PM)
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="alert alert-primary">
+                <h6><i class="bi bi-info-circle me-2"></i>Quick Help</h6>
+                <p class="mb-2">Press <kbd>F1</kbd> for keyboard shortcuts</p>
+                <p class="mb-0">Press <kbd>Ctrl+R</kbd> to refresh data</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

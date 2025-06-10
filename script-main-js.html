@@ -1,0 +1,448 @@
+<!-- Main Application JavaScript -->
+<script>
+// Main application functionality and coordination
+
+// Global variables
+let dashboardChart = null;
+
+// Global utility functions for UI management
+/**
+ * Freeze/unfreeze a submit button to prevent spam clicking
+ */
+function freezeButton(buttonId, isLoading = true, originalText = null) {
+  const button = document.getElementById(buttonId);
+  if (!button) return;
+  
+  if (isLoading) {
+    // Store original text if not provided
+    if (!originalText) {
+      button.setAttribute('data-original-text', button.innerHTML);
+    } else {
+      button.setAttribute('data-original-text', originalText);
+    }
+    
+    // Disable and show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing...';
+    button.classList.add('btn-loading');
+  } else {
+    // Restore original state
+    const originalText = button.getAttribute('data-original-text');
+    if (originalText) {
+      button.innerHTML = originalText;
+      button.removeAttribute('data-original-text');
+    }
+    button.disabled = false;
+    button.classList.remove('btn-loading');
+  }
+}
+
+/**
+ * Validate email format
+ */
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+/**
+ * Show form validation error
+ */
+function showFormError(formId, message) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  
+  // Remove existing error messages
+  const existingErrors = form.querySelectorAll('.form-error-message');
+  existingErrors.forEach(error => error.remove());
+  
+  // Add new error message
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'alert alert-danger form-error-message mt-2';
+  errorDiv.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>${message}`;
+  form.appendChild(errorDiv);
+  
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    if (errorDiv.parentElement) {
+      errorDiv.remove();
+    }
+  }, 5000);
+}
+
+// Initialize the application when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Main application JavaScript loaded');
+  
+  // Initialize main components
+  initializeMainComponents();
+  
+  // Set up global event listeners
+  setupGlobalEventListeners();
+});
+
+/**
+ * Initialize main application components
+ */
+function initializeMainComponents() {
+  // Wait for authentication to complete before initializing
+  window.addEventListener('authenticationComplete', function(event) {
+    const userInfo = event.detail.userInfo;
+    console.log('Authentication complete, initializing main components for:', userInfo.userEmail);
+    
+    // Initialize dashboard
+    setTimeout(() => {
+      loadDashboardData();
+    }, 1000);
+  });
+}
+
+/**
+ * Set up global event listeners
+ */
+function setupGlobalEventListeners() {
+  // Global error handler
+  window.addEventListener('error', function(event) {
+    console.error('Global error:', event.error);
+    showGlobalNotification('An unexpected error occurred. Please refresh the page.', 'danger');
+  });
+  
+  // Handle offline/online status
+  window.addEventListener('offline', function() {
+    showGlobalNotification('You are currently offline. Some features may not work.', 'warning');
+  });
+  
+  window.addEventListener('online', function() {
+    showGlobalNotification('Connection restored.', 'success');
+  });
+  
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(event) {
+    // Ctrl+R or F5 for manual refresh
+    if ((event.ctrlKey && event.key === 'r') || event.key === 'F5') {
+      event.preventDefault();
+      if (window.manualRefresh) {
+        window.manualRefresh();
+      }
+    }
+    
+    // F1 for help
+    if (event.key === 'F1') {
+      event.preventDefault();
+      window.showSection('helpView', document.getElementById('navHelp'));
+    }
+  });
+}
+
+/**
+ * Load dashboard data
+ */
+function loadDashboardData() {
+  console.log('Loading dashboard data...');
+  
+  // Load basic stats
+  loadDashboardStats();
+  
+  // Load dashboard chart
+  loadDashboardChart();
+  
+  // Update last activity
+  updateLastActivity();
+}
+
+/**
+ * Load dashboard statistics
+ */
+function loadDashboardStats() {
+  // Get data from backend to populate stats
+  google.script.run
+    .withSuccessHandler(handleDashboardStats)
+    .withFailureHandler(handleDashboardStatsError)
+    .getDataRecords('All', '');
+}
+
+/**
+ * Handle dashboard stats result
+ */
+function handleDashboardStats(result) {
+  if (result && result.records) {
+    const totalRecords = result.records.length;
+    
+    // Update total records
+    const totalRecordsElement = document.getElementById('totalRecords');
+    if (totalRecordsElement) {
+      totalRecordsElement.textContent = totalRecords;
+    }
+    
+    // Count categories
+    const categories = new Set();
+    result.records.forEach(record => {
+      if (record.Category) {
+        categories.add(record.Category);
+      }
+    });
+    
+    // You can add more stats here based on your data structure
+  }
+}
+
+/**
+ * Handle dashboard stats error
+ */
+function handleDashboardStatsError(error) {
+  console.error('Error loading dashboard stats:', error);
+}
+
+/**
+ * Load dashboard chart
+ */
+function loadDashboardChart() {
+  const chartCanvas = document.getElementById('dashboardChart');
+  if (!chartCanvas) return;
+  
+  // Get data for chart
+  google.script.run
+    .withSuccessHandler(handleDashboardChartData)
+    .withFailureHandler(handleDashboardChartError)
+    .getDataRecords('All', '');
+}
+
+/**
+ * Handle dashboard chart data
+ */
+function handleDashboardChartData(result) {
+  const chartCanvas = document.getElementById('dashboardChart');
+  if (!chartCanvas || !result || !result.records) return;
+  
+  // Destroy existing chart
+  if (dashboardChart) {
+    dashboardChart.destroy();
+  }
+  
+  // Prepare data for chart
+  const data = result.records;
+  const categoryData = {};
+  
+  data.forEach(record => {
+    const category = record.Category || 'Uncategorized';
+    categoryData[category] = (categoryData[category] || 0) + 1;
+  });
+  
+  const chartData = {
+    labels: Object.keys(categoryData),
+    datasets: [{
+      label: 'Records by Category',
+      data: Object.values(categoryData),
+      backgroundColor: [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+        '#E7E9ED', '#71B37C'
+      ],
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  };
+  
+  // Create chart with theme-aware colors
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  
+  dashboardChart = new Chart(chartCanvas, {
+    type: 'doughnut',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: isDarkMode ? '#ffffff' : '#333333',
+            padding: 20,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: isDarkMode ? '#2d2d2d' : '#ffffff',
+          titleColor: isDarkMode ? '#ffffff' : '#333333',
+          bodyColor: isDarkMode ? '#ffffff' : '#333333',
+          borderColor: isDarkMode ? '#404040' : '#dee2e6',
+          borderWidth: 1
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Handle dashboard chart error
+ */
+function handleDashboardChartError(error) {
+  console.error('Error loading dashboard chart:', error);
+}
+
+/**
+ * Update charts theme when dark mode changes
+ */
+function updateChartsTheme() {
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  
+  // Update dashboard chart
+  if (dashboardChart) {
+    dashboardChart.options.plugins.legend.labels.color = isDarkMode ? '#ffffff' : '#333333';
+    dashboardChart.options.plugins.tooltip.backgroundColor = isDarkMode ? '#2d2d2d' : '#ffffff';
+    dashboardChart.options.plugins.tooltip.titleColor = isDarkMode ? '#ffffff' : '#333333';
+    dashboardChart.options.plugins.tooltip.bodyColor = isDarkMode ? '#ffffff' : '#333333';
+    dashboardChart.options.plugins.tooltip.borderColor = isDarkMode ? '#404040' : '#dee2e6';
+    dashboardChart.update();
+  }
+  
+  // Update other charts if they exist
+  if (window.currentChart) {
+    window.currentChart.options.plugins.legend.labels.color = isDarkMode ? '#ffffff' : '#333333';
+    window.currentChart.options.plugins.tooltip.backgroundColor = isDarkMode ? '#2d2d2d' : '#ffffff';
+    window.currentChart.options.plugins.tooltip.titleColor = isDarkMode ? '#ffffff' : '#333333';
+    window.currentChart.options.plugins.tooltip.bodyColor = isDarkMode ? '#ffffff' : '#333333';
+    window.currentChart.options.plugins.tooltip.borderColor = isDarkMode ? '#404040' : '#dee2e6';
+    window.currentChart.update();
+  }
+}
+
+/**
+ * Update last activity time
+ */
+function updateLastActivity() {
+  const lastUpdatedElement = document.getElementById('lastUpdated');
+  if (lastUpdatedElement) {
+    const now = new Date();
+    lastUpdatedElement.textContent = now.toLocaleTimeString();
+  }
+}
+
+/**
+ * Refresh dashboard data
+ */
+function refreshDashboard() {
+  loadDashboardData();
+  showGlobalNotification('Dashboard refreshed', 'info');
+}
+
+/**
+ * Export data functionality
+ */
+function exportData() {
+  if (window.exportTableAsCSV) {
+    window.exportTableAsCSV();
+  } else {
+    showGlobalNotification('Export functionality not available', 'warning');
+  }
+}
+
+/**
+ * Show global notification
+ */
+function showGlobalNotification(message, type = 'info') {
+  // Remove existing notifications
+  const existingNotifications = document.querySelectorAll('.global-notification');
+  existingNotifications.forEach(notification => notification.remove());
+  
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `alert alert-${type} position-fixed global-notification`;
+  notification.style.cssText = `
+    top: 20px; right: 20px; z-index: 9999; 
+    min-width: 300px; max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideInRight 0.3s ease-out;
+  `;
+  
+  const isDismissible = type !== 'danger';
+  
+  notification.innerHTML = `
+    <div class="d-flex align-items-center">
+      <div class="flex-grow-1">
+        ${getNotificationIcon(type)}
+        <span class="ms-2">${message}</span>
+      </div>
+      ${isDismissible ? '<button type="button" class="btn-close ms-2" onclick="this.parentElement.parentElement.remove()"></button>' : ''}
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Auto remove after delay (except for danger alerts)
+  if (isDismissible) {
+    const delay = type === 'success' ? 3000 : 5000;
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.style.animation = 'slideOutRight 0.3s ease-in';
+        setTimeout(() => notification.remove(), 300);
+      }
+    }, delay);
+  }
+}
+
+/**
+ * Get notification icon based on type
+ */
+function getNotificationIcon(type) {
+  const icons = {
+    success: '<i class="bi bi-check-circle-fill text-success"></i>',
+    danger: '<i class="bi bi-exclamation-triangle-fill text-danger"></i>',
+    warning: '<i class="bi bi-exclamation-triangle-fill text-warning"></i>',
+    info: '<i class="bi bi-info-circle-fill text-info"></i>'
+  };
+  return icons[type] || icons.info;
+}
+
+/**
+ * Handle general application errors
+ */
+function handleError(error) {
+  console.error('Application error:', error);
+  showGlobalNotification('An error occurred: ' + (error.message || error), 'danger');
+}
+
+// Add CSS for animations
+const notificationStyle = document.createElement('style');
+notificationStyle.textContent = `
+  @keyframes slideInRight {
+    from { 
+      transform: translateX(100%); 
+      opacity: 0; 
+    }
+    to { 
+      transform: translateX(0); 
+      opacity: 1; 
+    }
+  }
+  
+  @keyframes slideOutRight {
+    from { 
+      transform: translateX(0); 
+      opacity: 1; 
+    }
+    to { 
+      transform: translateX(100%); 
+      opacity: 0; 
+    }
+  }
+  
+  .global-notification {
+    animation: slideInRight 0.3s ease-out;
+  }
+`;
+
+document.head.appendChild(notificationStyle);
+
+// Make utility functions globally accessible
+window.freezeButton = freezeButton;
+window.isValidEmail = isValidEmail;
+window.showFormError = showFormError;
+window.loadDashboardData = loadDashboardData;
+window.refreshDashboard = refreshDashboard;
+window.exportData = exportData;
+window.showGlobalNotification = showGlobalNotification;
+window.handleError = handleError;
+
+console.log('Main application JavaScript initialized');
+</script>
